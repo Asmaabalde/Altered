@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <div {{ react_component('Deck', {
+    user: {
+      id: app.user.id,
+      email: app.user.email
+    }
+  }) }}>
+    Loading... <i class="fas fa-cog fa-spin fa-3x"></i>
+  </div>
+{% endblock %}

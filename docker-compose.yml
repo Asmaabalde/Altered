@@ -1,0 +1,49 @@
+version: '3'
+services:
+  apachephp:
+    build:
+      php
+    ports:
+      - 8001:80
+      - 9222:9222
+    volumes:
+      - ./php/vhosts:/etc/apache2/sites-enabled
+      - ./app/:/var/www
+    networks:
+      - dev
+
+  db:
+    image: mysql
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: 'decklist-altered'
+    networks:
+      - dev
+
+  phpmyadmin:
+    image: phpmyadmin
+    depends_on:
+      - db
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: db
+    networks:
+      - dev
+
+  maildev:
+    image: maildev/maildev
+    command: bin/maildev --web 80 --smtp 25 --hide-extensions STARTTLS
+    ports:
+      - 8081:80
+      - 25:25
+    networks:
+      - dev
+
+networks:
+  dev:
+
+volumes:
+  db-data:
