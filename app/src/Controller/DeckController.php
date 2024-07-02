@@ -23,7 +23,8 @@ class DeckController extends AbstractController
         return $this->render('decks/show.html.twig', []);
     }
 
-    #[Route('/{id}', name: 'edit_deck')]
+    #[Route('/{id}/edit', name: 'edit_deck')]
+    #[IsGranted('ROLE_USER')]
     public function edit () : Response 
     {
         return $this->render('decks/edit.html.twig', []);

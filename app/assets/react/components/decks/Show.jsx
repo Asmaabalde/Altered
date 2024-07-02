@@ -55,7 +55,7 @@ export default function DeckDetails({ user }) {
                         <h1 className='text-capitalize'>{deck.name}</h1>
                         <div>
                             <button onClick={onClickDeleteHandler} className='btn btn-danger mr-4'>Supprimer</button>
-                               <Link to={`/decks/new/${deckId}`} className='btn btn-primary'>Modifier</Link>
+                               <Link to={`/decks/edit/${deckId}`} className='btn btn-primary'>Modifier</Link>
                         </div>
                     </div>
                 )}
