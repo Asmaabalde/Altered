@@ -1,24 +1,25 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import copy from 'copy-to-clipboard';
 
-import {post} from '../../services/deck';
-import {getAllHero, getAllOtherThanHeroWithFaction} from '../../services/card';
+import { post as postDeck } from '../../services/deck';
+import { post as postDeckCard } from '../../services/deckCard';
+import { getAllHero, getAllOtherThanHeroWithFaction } from '../../services/card';
 
-export default function ({user}) {
+export default function New({ user }) {
+
+    // State variables
     const [deck, setDeck] = useState({
         name: '',
         hero: null,
         user: `/api/users/${user.id}`
     });
     const [selectedHero, setSelectedHero] = useState(null);
-
     const [msgErrorDeck, setMsgErrorDeck] = useState(null);
     const [msgSuccessDeck, setMsgSuccessDeck] = useState(null);
-
     const [cardsDeck, setCardsDeck] = useState([]);
-
     const [cards, setCards] = useState([]);
 
+    // Fetching hero cards on component mount
     useEffect(() => {
         const getData = async () => {
             const res = await getAllHero();
@@ -28,192 +29,287 @@ export default function ({user}) {
         getData();
     }, []);
 
+    // Handle form submission
     const onHandlerSubmit = async (event) => {
         event.preventDefault();
-        await post(deck);
-        window.location.href = "/";
-    }
+    
+        try {
+            // Créer le deck et récupérer les données du backend
+            const newDeck = await postDeck(deck);
+            setDeck(newDeck);
+    
+            // Enregistrer chaque carte du deck dans la table deck_card
+            await Promise.all(
+                cardsDeck.map(async (card) => {
+                    const deckCard = {
+                        deck: `/api/decks/${newDeck.id}`,
+                        card: `/api/cards/${card.card.id}`,
+                        qty: card.qte
+                    };
+                    await postDeckCard(deckCard);
+                })
+            );
+    
+            setMsgSuccessDeck('Deck sauvegardé avec succès !');
+            setCardsDeck([]);
+            setSelectedHero(null);
+            setDeck({
+                name: '',
+                hero: null,
+                user: `/api/users/${user.id}`
+            });
+    
+            // Rediriger l'utilisateur vers une autre page
+            window.location.href = "/"; // Remplacez par l'URL de la page souhaitée
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde du deck :', error);
+            setMsgErrorDeck('Erreur lors de la sauvegarde du deck. Veuillez réessayer.');
+        }
+    };
+    // Handle input change
+    const onChangeHandler = (event) => {
+        const { name, value } = event.target;
+        setDeck({ ...deck, [name]: value });
+    };
 
-    const onChangeHander = (event) => {
-        const {name, value} = event.target;
-        setDeck({...deck, name: value});
-    }
-
+    // Handle hero change
     const onChangeHero = async () => {
-        setDeck({...deck, hero: null});
+        setDeck({ ...deck, hero: null });
         const res = await getAllHero();
         setCards(res);
-    }
+    };
 
+    // Remove a card from the deck
     const removeCard = (card) => {
-        let newCards = cardsDeck;
+        let newCards = cardsDeck.slice();
         let deleteIndex = false;
-        
-        // On regarde si la carte est dans les cartes déjà ajouté.
-        let cardIndex = cardsDeck.findIndex(item => item.card.name == card.name );
-    
-        if(cardIndex !== -1) {
+
+        let cardIndex = cardsDeck.findIndex((item) => item.card.name === card.name);
+
+        if (cardIndex !== -1) {
             newCards = newCards.map((item, index) => {
                 if (index !== cardIndex) {
-                    return item
+                    return item;
                 } else {
                     if (newCards[index].qte > 1) {
-                        console.log('minus');
                         return {
                             ...item,
                             qte: newCards[index].qte - 1
-                        }
+                        };
                     } else {
                         deleteIndex = index;
                     }
                 }
+                return item;
             });
         }
         if (deleteIndex !== false) {
             newCards.splice(deleteIndex, 1);
         }
-        console.log(newCards);
 
-        setCardsDeck(cardsDeck => newCards);
-    }
+        setCardsDeck(newCards);
+    };
 
+    // Add a card to the deck
     const addCard = async (card) => {
         setMsgErrorDeck(null);
-        let newCards = cardsDeck;
-        
-        // On regarde si la carte est dans les cartes déjà ajouté.
-        let cardIndex = cardsDeck.findIndex(item => item.card.name == card.name );
-        
-        if (card.cardType.name == 'Hero') {
-            setDeck({...deck, hero: `/api/cards/${card.id}`});
+        let newCards = cardsDeck.slice();
+
+        let cardIndex = cardsDeck.findIndex((item) => item.card.name === card.name);
+
+        if (card.cardType.name === 'Hero') {
+            setDeck({ ...deck, hero: `/api/cards/${card.id}` });
             setSelectedHero(card);
             const res = await getAllOtherThanHeroWithFaction(card.mainFaction.name);
             setCards(res);
         } else {
-            if(cardIndex !== -1) {
-                console.log('modify');
+            if (cardIndex !== -1) {
                 newCards = newCards.map((item, index) => {
-                    if (index == cardIndex) {
+                    if (index === cardIndex) {
                         if (newCards[index].qte < 3) {
                             return {
                                 ...item,
                                 qte: newCards[index].qte + 1
-                            }
+                            };
                         } else {
-                            setMsgErrorDeck("Vous en avez plus de 3 exemplaires");
+                            setMsgErrorDeck('Vous avez déjà plus de 3 exemplaires de cette carte.');
                         }
                     }
-                    
-                    return item
+                    return item;
                 });
             } else {
-                console.log('add');
-                // Sinon on ajoute la carte en qte = 1
-                newCards = [...newCards, {card: card, qte: 1}];
+                newCards.push({ card: card, qte: 1 });
             }
 
-            setCardsDeck(cardsDeck => newCards);
+            setCardsDeck(newCards);
         }
-        
-    }
+    };
 
+    // Handle export button click
     const onExportButton = () => {
-        let deck = cardsDeck.map(card => `${card.qte} ${card.card.reference}`).join('\n');
+        let deckList = cardsDeck.map((card) => `${card.qte} ${card.card.reference}`).join('\n');
 
-        copy(deck, {
+        copy(deckList, {
             debug: true,
-            message: 'Press #{key} to copy',
+            message: 'Appuyez sur #{key} pour copier'
         });
 
-        setMsgSuccessDeck('List bien copié !');
-    }
+        setMsgSuccessDeck('Liste copiée avec succès !');
+    };
 
+    // Get total number of cards in the deck
     const getNbCartes = () => {
-        let nb = 0;
-        cardsDeck.map(card => nb = nb + card.qte);
+        return cardsDeck.reduce((total, card) => total + card.qte, 0);
+    };
 
-        return nb;
-    }
-
+    // Get number of rare cards in the deck
     const getNbRareCartes = () => {
-        let nb = 0;
-        cardsDeck.map(card => {
-            if (card.card.rarity.name == "Rare") {
-                nb = nb + card.qte
+        return cardsDeck.reduce((total, card) => {
+            if (card.card.rarity.name === 'Rare') {
+                return total + card.qte;
             }
-        });
+            return total;
+        }, 0);
+    };
 
-        return nb;
-    }
-
-    return <>
-        <div className="container">
-            <h1>Créer un nouveau deck</h1>
-        </div>
-        <section>
+    return (
+        <>
             <div className="container">
-                <div className="row">
-                    <div className="col-8">
-                        <div className="row">
-                            {cards.map(card => <div key={`cards-${card.id}`} className="col-3">
-                                <div className="mb-4" onClick={() => addCard(card)}>
-                                    <img src={`/img/cards/${card.picture}`} className="img-fluid" alt="..." />
-                                </div>
-                            </div>)}
+                <h1>Créer un nouveau deck</h1>
+            </div>
+            <section>
+                <div className="container">
+                    <div className="row">
+                        <div className="col-8">
+                            <div className="row">
+                                {cards.map((card) => (
+                                    <div key={`cards-${card.id}`} className="col-3">
+                                        <div className="mb-4" onClick={() => addCard(card)}>
+                                            <img
+                                                src={`/img/cards/${card.picture}`}
+                                                className="img-fluid"
+                                                alt="..."
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="col-4">
-                        <form onSubmit={onHandlerSubmit}>
-                            {selectedHero && <div onClick={() => onChangeHero()} className="mb-3">
-                                <img className='img-fluid' src={`/img/cards/${selectedHero.picture}`} alt="" />
-                            </div>}
+                        <div className="col-4">
+                            <form onSubmit={onHandlerSubmit}>
+                                {selectedHero && (
+                                    <div onClick={() => onChangeHero()} className="mb-3">
+                                        <img
+                                            className="img-fluid"
+                                            src={`/img/cards/${selectedHero.picture}`}
+                                            alt=""
+                                        />
+                                    </div>
+                                )}
 
-                            <div>
-                                <button className='btn btn-primary' type='button' onClick={(e) => onExportButton()}>Export list</button>
-                            </div>
-
-                            <div className="mb-3">
-                                <label htmlFor="name" className="form-label">Nom du deck</label>
-                                <input type="text" name="name" onChange={onChangeHander} value={deck.name} className="form-control" id="name" placeholder="Entrez le nom de votre deck" />
-                            </div>
-
-                            <div className="mb-3">
-                                <div className='d-flex justify-content-between'>
-                                    <div className={`${ getNbCartes() > 39 ? 'text-danger' : ''}`}>Nb cartes: { getNbCartes() } / 39</div>
-                                    <div className={`text-end ${ getNbRareCartes() > 15 ? 'text-danger' : ''}`}>Nb rares: {getNbRareCartes()} / 15</div>
+                                <div>
+                                    <button className="btn btn-primary" type="button" onClick={onExportButton}>
+                                        Exporter la liste
+                                    </button>
                                 </div>
-                            </div>
 
-                            { msgSuccessDeck && <div className='alert alert-success alert-dismissible'>
-                                { msgSuccessDeck }
-                                <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>}
+                                <div className="mb-3">
+                                    <label htmlFor="name" className="form-label">
+                                        Nom du deck
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        onChange={onChangeHandler}
+                                        value={deck.name}
+                                        className="form-control"
+                                        id="name"
+                                        placeholder="Entrez le nom de votre deck"
+                                    />
+                                </div>
 
-                            { msgErrorDeck && <div className='alert alert-danger alert-dismissible'>
-                                { msgErrorDeck }
-                                <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>}
-
-                            {cardsDeck.map(card => <div key={`deck-cards-${card.card.id}`} className="">
-                                <div className={`d-flex justify-content-between ${card.card.rarity.name == 'Unique' ? 'text-warning' : ''} ${card.card.rarity.name == 'Rare' ? 'text-success' : ''}`}>
-                                    <img src={`/img/cards/${card.card.picture}`} width="50px" alt="..." />
-                                    <div>{card.qte} x {card.card.name}</div>
-                                    <div>
-                                        <button type='button' onClick={() => addCard(card.card)} className="btn btn-primary">+</button>
-                                        &nbsp;
-                                        <button type='button' onClick={() => removeCard(card.card)} className="btn btn-primary">-</button>
+                                <div className="mb-3">
+                                    <div className="d-flex justify-content-between">
+                                        <div className={`${getNbCartes() > 39 ? 'text-danger' : ''}`}>
+                                            Nb cartes: {getNbCartes()} / 39
+                                        </div>
+                                        <div className={`text-end ${getNbRareCartes() > 15 ? 'text-danger' : ''}`}>
+                                            Nb rares: {getNbRareCartes()} / 15
+                                        </div>
                                     </div>
                                 </div>
-                            </div>)}
 
-                            <div className="mt-3 mb-3">
-                                <button className='btn btn-success' type='submit'>Sauvegarder</button>
-                            </div>
-                        </form>
+                                {msgSuccessDeck && (
+                                    <div className="alert alert-success alert-dismissible">
+                                        {msgSuccessDeck}
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            data-bs-dismiss="alert"
+                                            aria-label="Close"
+                                        ></button>
+                                    </div>
+                                )}
+
+                                {msgErrorDeck && (
+                                    <div className="alert alert-danger alert-dismissible">
+                                        {msgErrorDeck}
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            data-bs-dismiss="alert"
+                                            aria-label="Close"
+                                        ></button>
+                                    </div>
+                                )}
+
+                                {cardsDeck.map((card) => (
+                                    <div key={`deck-cards-${card.card.id}`} className="">
+                                        <div
+                                            className={`d-flex justify-content-between ${
+                                                card.card.rarity.name === 'Unique' ? 'text-warning' : ''
+                                            } ${card.card.rarity.name === 'Rare' ? 'text-success' : ''}`}
+                                        >
+                                            <img
+                                                src={`/img/cards/${card.card.picture}`}
+                                                width="50px"
+                                                alt="..."
+                                            />
+                                            <div>
+                                                {card.qte} x {card.card.name}
+                                            </div>
+                                            <div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addCard(card.card)}
+                                                    className="btn btn-primary"
+                                                >
+                                                    +
+                                                </button>
+                                                &nbsp;
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeCard(card.card)}
+                                                    className="btn btn-primary"
+                                                >
+                                                    -
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <div className="mt-3 mb-3">
+                                    <button className="btn btn-success" type="submit">
+                                        Sauvegarder
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-    </>;
+            </section>
+        </>
+    );
 }

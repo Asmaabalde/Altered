@@ -21,6 +21,10 @@ export default function ({user}) {
         {
             path: "/decks/:deckId",
             element: <DecksShow user={user} />,
+        },
+        {
+            path : "/decks/edit/deckId",
+            element: <DecksEdit user={user}/>
         }
     ]);
 
