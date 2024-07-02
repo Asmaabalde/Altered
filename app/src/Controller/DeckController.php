@@ -22,4 +22,10 @@ class DeckController extends AbstractController
     {
         return $this->render('decks/show.html.twig', []);
     }
+
+    #[Route('/{id}', name: 'edit_deck')]
+    public function edit () : Response 
+    {
+        return $this->render('decks/edit.html.twig', []);
+    }    
 }

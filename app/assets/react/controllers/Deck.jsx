@@ -7,6 +7,7 @@ import {
 import DecksList from "../components/decks/List";
 import DecksNew from "../components/decks/New";
 import DecksShow from "../components/decks/Show";
+import DecksEdit from "../components/decks/Edit";
 
 export default function ({user}) {
     const router = createBrowserRouter([
@@ -23,7 +24,7 @@ export default function ({user}) {
             element: <DecksShow user={user} />,
         },
         {
-            path : "/decks/edit/deckId",
+            path : "/decks/edit/:deckId",
             element: <DecksEdit user={user}/>
         }
     ]);
