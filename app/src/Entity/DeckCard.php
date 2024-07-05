@@ -44,15 +44,15 @@ class DeckCard
     use BaseTrait;
 
     #[ORM\ManyToOne(inversedBy: 'deckCards')]
-    #[Groups(['deck_card:read:collection', 'deck_card:create:item'])]
+    #[Groups(['deck_card:read:collection', 'deck_card:create:item', 'deck_card:update:item'])]
     private ?Card $card = null;
 
     #[ORM\ManyToOne(inversedBy: 'deckCards', cascade: ["persist"] )]
-    #[Groups(['deck_card:read:collection', 'deck_card:create:item'])]
+    #[Groups(['deck_card:read:collection', 'deck_card:create:item', 'deck_card:update:item'])]
     private ?Deck $deck = null;
 
     #[ORM\Column]
-    #[Groups(['deck_card:read:collection', 'deck_card:create:item'])]
+    #[Groups(['deck_card:read:collection', 'deck_card:create:item', 'deck_card:update:item'])]
     private ?int $qty = null;
 
     public function __construct()

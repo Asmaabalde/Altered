@@ -18,7 +18,8 @@ export default function DeckDetails({ user }) {
                 if (deckRes.deckCards && deckRes.deckCards.length > 0) {
                     const deckCardsWithDetails = await Promise.all(deckRes.deckCards.map(async (deckCard) => {
                         const deckCardDetails = await getDeckCardById(deckCard.id);
-                        const cardDetails = await getCardById(deckCardDetails.id);
+                        console.log(deckCardDetails);
+                        const cardDetails = await getCardById(deckCardDetails.card.id);
                         return {
                             ...deckCardDetails,
                             card: cardDetails,

@@ -17,14 +17,17 @@ export default function Edit({ user }) {
     useEffect(() => {
         const getData = async () => {
             try {
+                // On récupère le deck correspondant au deckId dans l'url
                 const deckRes = await getDeck(deckId);
                 setDeck(deckRes);
 
+                // S'il y a déjà une carte héro sélectionnée
                 if (deckRes.hero) {
+                    // On stocke dans selectedHero
                     setSelectedHero(deckRes.hero);
                     const cardFRes = await getCardById(deckRes.hero.id);
                     setCardsF(cardFRes);
-
+                    // On affiche les cartes de la même faction que la carte hero
                     if (cardFRes.mainFaction && cardFRes.mainFaction.name) {
                         const factionCards = await getAllOtherThanHeroWithFaction(cardFRes.mainFaction.name);
                         setCards(factionCards);
@@ -62,23 +65,39 @@ export default function Edit({ user }) {
         event.preventDefault();
 
         try {
-            await updateDeck(deckId, deck);
+            // Préparer les données pour la requête PUT
+            const updatedDeckData = {
+                ...deck,
+                user: `/api/users/${deck.user.id}`,
+                hero: deck.hero ? `/api/cards/${deck.hero}` : null,
+            };
+            console.log(updatedDeckData);
+            console.log(deck);
 
+            // Mettre à jour le deck avec les nouvelles données
+            await updateDeck(deckId, updatedDeckData);
+
+            // Vérifier que chaque deckCard a une valeur pour qty
+            const validCardsDeck = cardsDeck.filter(deckCard => deckCard.qty !== undefined && deckCard.qty !== null);
+
+            // Mettre à jour les cartes du deck
             await Promise.all(
-                cardsDeck.map(async (deckCard) => {
+                validCardsDeck.map(async (deckCard) => {
                     const updatedDeckCard = {
                         deck: `/api/decks/${deckId}`,
                         card: `/api/cards/${deckCard.card.id}`,
                         qty: deckCard.qty
                     };
                     if (deckCard.id) {
+                        // Si la carte existe déjà dans le deck, mettre à jour la quantité
                         await updateDeckCard(deckCard.id, updatedDeckCard);
                     } else {
+                        // Sinon, ajouter la nouvelle carte au deck
                         await postDeckCard(updatedDeckCard);
                     }
                 })
             );
-
+            // Afficher un message de succès
             setMsgSuccessDeck('Deck mis à jour avec succès !');
         } catch (error) {
             console.error('Erreur lors de la mise à jour du deck :', error);
@@ -133,11 +152,16 @@ export default function Edit({ user }) {
 
         let cardIndex = cardsDeck.findIndex((item) => item.card.name === card.name);
 
-        if (card.cardType.name === 'Hero') {
-            setDeck({ ...deck, hero: `/api/cards/${card.id}` });
+        if (card.cardType.name === 'Hero' && card.id) {
+            console.log(card.id);
+            console.log(deck);
+            setDeck({ ... deck, hero: `/api/cards/${card.id}` });
+            console.log(deck);
             setSelectedHero(card);
+            console.log(selectedHero);
+
             const res = await getAllOtherThanHeroWithFaction(card.mainFaction.name);
-            setCards(res);
+            setCards(res);        
         } else {
             if (cardIndex !== -1) {
                 newCards = newCards.map((item, index) => {
@@ -295,9 +319,12 @@ export default function Edit({ user }) {
                                 ))}
 
                                 <div className="mt-3 mb-3">
-                                    <button className="btn btn-success" type="submit">
+                                    <button className="btn btn-success mr-10" type="submit">
                                         Mettre à jour
                                     </button>
+                                    <Link to={`/decks/${deckId}`} className="btn btn-primary ml-10">
+                                        Retour
+                                    </Link>
                                 </div>
                             </form>
                         </div>

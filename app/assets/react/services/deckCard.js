@@ -32,7 +32,7 @@ export const post = async (deckCard) => {
 }
 
 export const put = async (deckCardId, deckCard) => {
-    const url = `${API_BASE_URL}/api/deck_cards/${deckCardId}.json`;
+    const url = `${API_BASE_URL}/api/deck_cards/${deckCardId}`;
     console.log('URL de la requête PUT:', url);
     const res = await axios.put(url, deckCard, {
         headers: {

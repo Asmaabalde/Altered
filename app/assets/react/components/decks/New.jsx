@@ -7,7 +7,7 @@ import { getAllHero, getAllOtherThanHeroWithFaction } from '../../services/card'
 
 export default function New({ user }) {
 
-    // State variables
+    // Variables d'état
     const [deck, setDeck] = useState({
         name: '',
         hero: null,
@@ -19,7 +19,7 @@ export default function New({ user }) {
     const [cardsDeck, setCardsDeck] = useState([]);
     const [cards, setCards] = useState([]);
 
-    // Fetching hero cards on component mount
+    // Récupération des cartes héros au montage du composant
     useEffect(() => {
         const getData = async () => {
             const res = await getAllHero();
@@ -29,16 +29,16 @@ export default function New({ user }) {
         getData();
     }, []);
 
-    // Handle form submission
+    // Gestion de la soumission du formulaire
     const onHandlerSubmit = async (event) => {
         event.preventDefault();
     
         try {
-            // Créer le deck et récupérer les données du backend
+            // Création du deck et récupération des données depuis le backend
             const newDeck = await postDeck(deck);
             setDeck(newDeck);
     
-            // Enregistrer chaque carte du deck dans la table deck_card
+            // Enregistrement de chaque carte du deck dans la table deck_card
             await Promise.all(
                 cardsDeck.map(async (card) => {
                     const deckCard = {
@@ -59,27 +59,28 @@ export default function New({ user }) {
                 user: `/api/users/${user.id}`
             });
     
-            // Rediriger l'utilisateur vers une autre page
+            // Redirection de l'utilisateur vers une autre page
             window.location.href = "/"; // Remplacez par l'URL de la page souhaitée
         } catch (error) {
             console.error('Erreur lors de la sauvegarde du deck :', error);
             setMsgErrorDeck('Erreur lors de la sauvegarde du deck. Veuillez réessayer.');
         }
     };
-    // Handle input change
+
+    // Gestion du changement de saisie
     const onChangeHandler = (event) => {
         const { name, value } = event.target;
         setDeck({ ...deck, [name]: value });
     };
 
-    // Handle hero change
+    // Gestion du changement de héros
     const onChangeHero = async () => {
         setDeck({ ...deck, hero: null });
         const res = await getAllHero();
         setCards(res);
     };
 
-    // Remove a card from the deck
+    // Suppression d'une carte du deck
     const removeCard = (card) => {
         let newCards = cardsDeck.slice();
         let deleteIndex = false;
@@ -110,7 +111,7 @@ export default function New({ user }) {
         setCardsDeck(newCards);
     };
 
-    // Add a card to the deck
+    // Ajout d'une carte au deck
     const addCard = async (card) => {
         setMsgErrorDeck(null);
         let newCards = cardsDeck.slice();
@@ -145,7 +146,7 @@ export default function New({ user }) {
         }
     };
 
-    // Handle export button click
+    // Gestion du clic sur le bouton d'exportation
     const onExportButton = () => {
         let deckList = cardsDeck.map((card) => `${card.qte} ${card.card.reference}`).join('\n');
 
@@ -157,12 +158,12 @@ export default function New({ user }) {
         setMsgSuccessDeck('Liste copiée avec succès !');
     };
 
-    // Get total number of cards in the deck
+    // Obtenir le nombre total de cartes dans le deck
     const getNbCartes = () => {
         return cardsDeck.reduce((total, card) => total + card.qte, 0);
     };
 
-    // Get number of rare cards in the deck
+    // Obtenir le nombre de cartes rares dans le deck
     const getNbRareCartes = () => {
         return cardsDeck.reduce((total, card) => {
             if (card.card.rarity.name === 'Rare') {

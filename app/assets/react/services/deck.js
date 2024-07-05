@@ -31,7 +31,7 @@ export const post = async (deck) => {
 }
 
 export const put = async (deckId, data) => {
-    const url = `${API_BASE_URL}/api/decks/${deckId}.json`;
+    const url = `${API_BASE_URL}/api/decks/${deckId}`;
     console.log('URL de la requête PUT:', url);
     const response = await fetch(url, {
         method: 'PUT',
@@ -42,7 +42,6 @@ export const put = async (deckId, data) => {
     });
     return response.json();
 };
-
 export const deleteOne = async (deckId) => {
     const res = await axios.delete(`/api/decks/${deckId}.json`, {
         headers: {
