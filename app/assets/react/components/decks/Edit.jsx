@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getOne as getDeck, put as updateDeck } from '../../services/deck';
-import { post as postDeckCard, put as updateDeckCard, getOne as getDeckCardById } from '../../services/deckCard';
+import { post as postDeckCard, put as updateDeckCard, getOne as getDeckCardById, deleteOne as deleteDeckCard} from '../../services/deckCard';
 import { getAllHero, getAllOtherThanHeroWithFaction, getOne as getCardById } from '../../services/card';
 
 export default function Edit({ user }) {
@@ -69,8 +69,9 @@ export default function Edit({ user }) {
             const updatedDeckData = {
                 ...deck,
                 user: `/api/users/${deck.user.id}`,
-                hero: deck.hero ? `/api/cards/${deck.hero}` : null,
+                hero: deck.hero ? (typeof deck.hero === 'string' ? deck.hero : `/api/cards/${deck.hero.id}`) : null,
             };
+            
             console.log(updatedDeckData);
             console.log(deck);
 
@@ -116,12 +117,21 @@ export default function Edit({ user }) {
         setCards(res);
     };
 
-    const removeCard = (card) => {
+    const deleteCardFromDB = async (deckCardId) => {
+        try {
+            await deleteDeckCard(deckCardId);
+        } catch (error) {
+            console.error('Erreur lors de la suppression de la carte du deck :', error);
+            setMsgErrorDeck('Erreur lors de la suppression de la carte. Veuillez réessayer.');
+        }
+    };
+
+    const removeCard = async (card) => {
         let newCards = cardsDeck.slice();
         let deleteIndex = false;
-
+    
         let cardIndex = cardsDeck.findIndex((item) => item.card.name === card.name);
-
+    
         if (cardIndex !== -1) {
             newCards = newCards.map((item, index) => {
                 if (index !== cardIndex) {
@@ -139,12 +149,17 @@ export default function Edit({ user }) {
                 return item;
             });
         }
+    
         if (deleteIndex !== false) {
+            const deckCardId = newCards[deleteIndex].id;
             newCards.splice(deleteIndex, 1);
+            // Supprimer la carte de la base de données
+            await deleteCardFromDB(deckCardId);
         }
-
+    
         setCardsDeck(newCards);
     };
+    
 
     const addCard = async (card) => {
         setMsgErrorDeck(null);
@@ -153,16 +168,13 @@ export default function Edit({ user }) {
         let cardIndex = cardsDeck.findIndex((item) => item.card.name === card.name);
 
         if (card.cardType.name === 'Hero' && card.id) {
-            console.log(card.id);
-            console.log(deck);
-            setDeck({ ... deck, hero: `/api/cards/${card.id}` });
-            console.log(deck);
+            const updatedDeck = { ...deck, hero: card };
+            setDeck(updatedDeck);
             setSelectedHero(card);
-            console.log(selectedHero);
-
             const res = await getAllOtherThanHeroWithFaction(card.mainFaction.name);
-            setCards(res);        
-        } else {
+            setCards(res);
+        }
+        else {
             if (cardIndex !== -1) {
                 newCards = newCards.map((item, index) => {
                     if (index === cardIndex) {
